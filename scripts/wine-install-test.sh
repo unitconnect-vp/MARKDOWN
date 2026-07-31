@@ -1,5 +1,10 @@
 #!/bin/bash
-# NSIS 설치 파일을 wine 으로 실제 설치해 보는 스모크 테스트 (Linux 에서만 의미 있음).
+# NSIS 설치 파일을 wine 으로 실제 설치해 보는 스모크 테스트 (Linux 전용, 선택 사항).
+#
+# 주의: 190 MB 짜리 페이로드를 wine 위에서 풀기 때문에 매우 느리고,
+#       자원이 빠듯한 컨테이너에서는 wineboot 단계부터 실패할 수 있다.
+#       설치 파일의 정식 검증은 Windows 러너에서 도는 CI 와
+#       `npm run verify:installer` 가 담당한다.
 set -u
 PREFIX="${1:-/tmp/markview-wine}"
 SETUP="${2:-release/MarkView-1.0.0-Setup.exe}"
