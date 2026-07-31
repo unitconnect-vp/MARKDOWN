@@ -26,7 +26,10 @@ MarkView 는 이 네 가지를 기본으로 처리합니다.
 
 ### 설치 파일 (권장)
 
-`release/MarkView-1.0.0-Setup.exe` 를 실행합니다. (약 80 MB, Windows 10/11 64비트)
+빌드된 설치 파일은 GitHub Actions 의 **Windows 설치 파일 빌드 › Artifacts › `MarkView-Windows`**
+에서 내려받거나, 직접 빌드하면 `release/` 에 생깁니다.
+
+`MarkView-1.0.0-Setup.exe` 를 실행합니다. (약 80 MB, Windows 10/11 64비트)
 
 - 기본값인 **"현재 사용자만"** 으로 설치하면 관리자 권한이 필요 없습니다.
   (설치 첫 화면에서 "모든 사용자" 를 고르면 UAC 승격이 필요합니다.)
@@ -39,7 +42,8 @@ MarkView 는 이 네 가지를 기본으로 처리합니다.
 
 ### 포터블
 
-설치 없이 쓰려면 `release/MarkView-1.0.0-Portable.exe` 를 그대로 실행합니다.
+설치 없이 쓰려면 `MarkView-1.0.0-Portable.exe` 를 그대로 실행합니다.
+(같은 아티팩트에 함께 들어 있습니다.)
 
 ---
 
@@ -100,7 +104,7 @@ npm start         # 앱 실행
 
 ```bash
 npm run test:unit          # 렌더링 파이프라인 단위 테스트 (50개)
-npm run test:e2e           # 실제 Electron 창을 띄우는 시뮬레이션 (33개)
+npm run test:e2e           # 실제 Electron 창을 띄우는 시뮬레이션 (34개)
 npm run verify:package     # 패키징된 앱으로 같은 시뮬레이션 재실행
 npm run verify:installer   # 설치 파일 구조·아이콘·버전 정보·asar 내용 검증
 ```
