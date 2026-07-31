@@ -68,6 +68,14 @@ const section = (title) => console.log(`\n[1m${title}[0m`);
 
 // ---------------------------------------------------------------------------
 
+/** 어딘가에서 멈추더라도 CI 가 몇 시간씩 돌지 않도록 전체 시간을 제한한다. */
+const WATCHDOG_MS = Number(process.env.MARKVIEW_E2E_TIMEOUT_MS || 10 * 60 * 1000);
+const watchdog = setTimeout(() => {
+  console.error(`\n\x1b[31mE2E 전체 제한 시간(${Math.round(WATCHDOG_MS / 1000)}초) 초과 — 중단합니다.\x1b[0m`);
+  process.exit(1);
+}, WATCHDOG_MS);
+watchdog.unref();
+
 async function main() {
   await fs.rm(OUT_DIR, { recursive: true, force: true });
   await fs.mkdir(OUT_DIR, { recursive: true });
@@ -78,14 +86,22 @@ async function main() {
   console.log(`[90m결과물: ${path.relative(ROOT, OUT_DIR)}/[0m`);
 
   // 패키징된 앱은 자체 실행 파일을, 개발 모드는 electron + 프로젝트 경로를 쓴다.
+  // CI 러너는 /dev/shm 이 작아 --disable-dev-shm-usage 없이는 Chromium 이 멈출 수 있다.
+  const CHROMIUM_FLAGS = [
+    '--no-sandbox',
+    '--disable-gpu',
+    '--disable-dev-shm-usage',
+    '--disable-software-rasterizer',
+    `--user-data-dir=${userData}`,
+  ];
   const launchOptions = PACKAGED_DIR
     ? {
         executablePath: path.join(PACKAGED_DIR, process.platform === 'win32' ? 'MarkView.exe' : 'markview'),
-        args: ['--no-sandbox', '--disable-gpu', `--user-data-dir=${userData}`],
+        args: CHROMIUM_FLAGS,
       }
     : {
         executablePath: electronPath,
-        args: ['.', '--no-sandbox', '--disable-gpu', `--user-data-dir=${userData}`],
+        args: ['.', ...CHROMIUM_FLAGS],
         cwd: ROOT,
       };
 
@@ -647,6 +663,7 @@ async function main() {
   });
 
   // -------------------------------------------------------------------------
+  clearTimeout(watchdog);
   await app.close().catch(() => {});
   await fs.rm(userData, { recursive: true, force: true }).catch(() => {});
 

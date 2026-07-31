@@ -15,6 +15,7 @@ jobs:
   test:
     name: 테스트 (Linux)
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -27,6 +28,7 @@ jobs:
       - run: npm run test:unit
 
       - name: E2E 시뮬레이션 (실제 Electron 창)
+        timeout-minutes: 15
         run: xvfb-run -a npm run test:e2e
 
       - name: 실패 시 스크린샷 업로드
@@ -41,6 +43,7 @@ jobs:
     name: 설치 파일 빌드 (Windows)
     needs: test
     runs-on: windows-latest
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
