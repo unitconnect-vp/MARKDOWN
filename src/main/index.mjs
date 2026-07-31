@@ -183,16 +183,49 @@ function createWindow() {
   mainWindow.on('move', saveBounds);
 
   // 저장하지 않은 문서가 있으면 렌더러에 확인을 위임한다.
+  // 단, 렌더러가 사라졌거나 응답하지 않으면 창을 영영 닫을 수 없게 되므로
+  // 응답 대기에 제한 시간을 둔다.
   let allowClose = false;
+  let closePending = false;
+  const APPROVAL_TIMEOUT_MS = 8000;
+
   mainWindow.on('close', (event) => {
     if (allowClose) return;
+
+    // 렌더러가 이미 죽었다면 물어볼 상대가 없다 — 그대로 닫는다.
+    if (!rendererReady || mainWindow.webContents.isDestroyed() || mainWindow.webContents.isCrashed()) {
+      allowClose = true;
+      settings.flushNow();
+      return;
+    }
+
     event.preventDefault();
-    sendToRenderer('app:before-close', null);
-    ipcMain.once('app:close-approved', () => {
+    if (closePending) return; // 이미 확인 요청을 보냈다
+    closePending = true;
+
+    const finish = () => {
+      clearTimeout(timer);
+      ipcMain.removeListener('app:close-approved', onApproved);
+      ipcMain.removeListener('app:close-cancelled', onCancelled);
+    };
+    const onApproved = () => {
+      finish();
       allowClose = true;
       settings.flushNow();
       if (mainWindow && !mainWindow.isDestroyed()) mainWindow.close();
-    });
+    };
+    const onCancelled = () => {
+      finish();
+      closePending = false; // 사용자가 취소 — 다음 닫기 시도에 다시 물어본다
+    };
+    const timer = setTimeout(() => {
+      console.warn('[markview] 렌더러가 종료 확인에 응답하지 않아 창을 닫습니다.');
+      onApproved();
+    }, APPROVAL_TIMEOUT_MS);
+
+    ipcMain.once('app:close-approved', onApproved);
+    ipcMain.once('app:close-cancelled', onCancelled);
+    sendToRenderer('app:before-close', null);
   });
 
   mainWindow.on('closed', () => {
@@ -372,7 +405,18 @@ function registerIpc() {
     if (/^https?:|^mailto:/i.test(url)) return shell.openExternal(url);
     return false;
   });
-  ipcMain.handle('shell:showItem', (_e, filePath) => shell.showItemInFolder(filePath));
+  ipcMain.handle('shell:showItem', async (_e, filePath) => {
+    if (!filePath) return false;
+    // Linux 의 showItemInFolder 는 xdg-open 을 동기적으로 부르기 때문에,
+    // 연결된 프로그램이 뜨는 동안 메인 프로세스 전체가 멈출 수 있다.
+    // (CI 에서 실제로 앱이 종료되지 못하고 매달렸다) 비동기 openPath 를 쓴다.
+    if (process.platform === 'linux') {
+      const error = await shell.openPath(path.dirname(filePath));
+      return !error;
+    }
+    shell.showItemInFolder(filePath);
+    return true;
+  });
   ipcMain.handle('clipboard:writeText', (_e, text) => clipboard.writeText(String(text ?? '')));
 
   ipcMain.on('window:title', (_e, title) => {

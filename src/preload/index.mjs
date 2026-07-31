@@ -51,6 +51,7 @@ contextBridge.exposeInMainWorld('markview', {
   setTitle: (title) => ipcRenderer.send('window:title', title),
   setDirty: (dirty) => ipcRenderer.send('window:dirty', dirty),
   approveClose: () => ipcRenderer.send('app:close-approved'),
+  cancelClose: () => ipcRenderer.send('app:close-cancelled'),
   quit: () => ipcRenderer.send('app:quit'),
 
   // --- 이벤트 -------------------------------------------------------------

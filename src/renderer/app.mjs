@@ -941,12 +941,14 @@ async function handleBeforeClose() {
     const choice = await api.confirmDiscard(doc.name);
     if (choice === 'cancel') {
       state.closing = false;
+      api.cancelClose();
       return;
     }
     if (choice === 'save') {
       const saved = await saveDoc(doc);
       if (!saved) {
         state.closing = false;
+        api.cancelClose();
         return;
       }
     } else {

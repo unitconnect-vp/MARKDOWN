@@ -118,6 +118,14 @@ async function main() {
   });
   page.on('pageerror', (error) => consoleErrors.push(`pageerror: ${error.message}`));
 
+  // 테스트 중에 실제 파일 탐색기/브라우저가 뜨지 않도록 셸 연동을 막는다.
+  // (CI 러너에서 xdg-open 이 파이어폭스를 띄워 프로세스가 남았다)
+  await app.evaluate(({ shell }) => {
+    shell.showItemInFolder = () => {};
+    shell.openExternal = async () => {};
+    shell.openPath = async () => '';
+  });
+
   await page.waitForFunction(() => document.documentElement.dataset.markviewReady === '1', null, { timeout: 60_000 });
 
   // -------------------------------------------------------------------------
@@ -663,8 +671,29 @@ async function main() {
   });
 
   // -------------------------------------------------------------------------
+  // -------------------------------------------------------------------------
+  section('9. 종료');
+
+  // 종료 확인을 렌더러에 위임하는 구조라, 렌더러가 응답하지 못하면 창이 영영 닫히지
+  // 않는다. (실제로 CI 에서 이 문제로 잡이 멈췄다) 제한 시간 안에 닫히는지 검사한다.
+  await check('앱이 제한 시간 안에 정상 종료된다', async () => {
+    const started = Date.now();
+    const closed = await Promise.race([
+      app.close().then(() => true).catch(() => true),
+      new Promise((resolve) => setTimeout(() => resolve(false), 20_000)),
+    ]);
+    const elapsed = Date.now() - started;
+    assert(closed, `20초 안에 종료되지 않음 (${elapsed}ms 경과) — 종료 확인 절차가 막혀 있을 수 있음`);
+    return `${elapsed}ms`;
+  });
+
   clearTimeout(watchdog);
-  await app.close().catch(() => {});
+  try {
+    const child = app.process();
+    if (child && child.exitCode === null) child.kill('SIGKILL');
+  } catch {
+    /* 이미 종료됨 */
+  }
   await fs.rm(userData, { recursive: true, force: true }).catch(() => {});
 
   // -------------------------------------------------------------------------
