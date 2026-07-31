@@ -11,6 +11,11 @@ on:
   pull_request:
   workflow_dispatch:
 
+# 같은 브랜치에 새 커밋이 오면 진행 중인 실행을 취소한다 (러너가 쌓이지 않도록).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: 테스트 (Linux)
