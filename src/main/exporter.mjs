@@ -134,6 +134,17 @@ export async function exportHtml(options) {
   return options.outPath;
 }
 
+/** 창 로드나 인쇄가 끝내 응답하지 않을 때 무한정 매달리지 않도록. */
+function withTimeout(promise, ms, label) {
+  let timer;
+  return Promise.race([
+    promise.finally(() => clearTimeout(timer)),
+    new Promise((_resolve, reject) => {
+      timer = setTimeout(() => reject(new Error(`${label} 시간 초과 (${ms / 1000}초)`)), ms);
+    }),
+  ]);
+}
+
 export async function exportPdf(options) {
   const html = await buildStandaloneHtml({ ...options, theme: 'light' });
   const tempFile = path.join(
@@ -142,21 +153,27 @@ export async function exportPdf(options) {
   );
   await fs.writeFile(tempFile, html, 'utf8');
 
+  // 오프스크린 렌더링은 이 용도에 필요 없고, 화면 없는 환경에서 멈출 수 있다.
   const win = new BrowserWindow({
     show: false,
-    webPreferences: { offscreen: true, javascript: false, sandbox: true, contextIsolation: true },
+    webPreferences: { javascript: false, sandbox: true, contextIsolation: true },
   });
 
+  const timeout = options.timeoutMs || 90_000;
   try {
-    await win.loadFile(tempFile);
+    await withTimeout(win.loadFile(tempFile), timeout, '인쇄용 문서 로드');
     // 웹폰트/레이아웃이 안정될 시간을 준다.
     await new Promise((resolve) => setTimeout(resolve, 400));
-    const pdf = await win.webContents.printToPDF({
-      printBackground: true,
-      pageSize: options.pageSize || 'A4',
-      margins: { marginType: 'custom', top: 0.5, bottom: 0.5, left: 0.5, right: 0.5 },
-      preferCSSPageSize: false,
-    });
+    const pdf = await withTimeout(
+      win.webContents.printToPDF({
+        printBackground: true,
+        pageSize: options.pageSize || 'A4',
+        margins: { marginType: 'custom', top: 0.5, bottom: 0.5, left: 0.5, right: 0.5 },
+        preferCSSPageSize: false,
+      }),
+      timeout,
+      'PDF 생성',
+    );
     await fs.writeFile(options.outPath, pdf);
     return options.outPath;
   } finally {
