@@ -1,0 +1,79 @@
+appId: net.unitconnect.markview
+productName: MarkView
+copyright: Copyright © 2026 UnitConnect
+
+# 자동 업데이트 서버를 쓰지 않으므로 latest.yml 생성을 끈다.
+publish: null
+generateUpdatesFilesForAllChannels: false
+
+directories:
+  output: release
+  buildResources: build
+
+# 번들 결과물과 package.json 만 앱에 포함한다 (소스·테스트·node_modules 제외).
+files:
+  - dist/**/*
+  - package.json
+  - '!**/*.map'
+
+# 샘플 문서는 asar 밖에 두어 사용자가 직접 열어보고 복사할 수 있게 한다.
+extraResources:
+  - from: samples
+    to: samples
+    filter: ['**/*']
+
+asar: true
+npmRebuild: false
+buildDependenciesFromSource: false
+
+# 실행 파일 아이콘/버전 정보는 rcedit(wine) 대신 resedit 로 직접 넣는다.
+afterPack: scripts/after-pack.mjs
+
+# .md 파일을 더블클릭하면 MarkView 로 열린다.
+fileAssociations:
+  - ext: md
+    name: Markdown Document
+    description: 마크다운 문서
+    role: Editor
+  - ext: markdown
+    name: Markdown Document
+    description: 마크다운 문서
+    role: Editor
+  - ext: mdx
+    name: MDX Document
+    description: MDX 문서
+    role: Editor
+
+win:
+  icon: build/icon.ico
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+  # 결과물 이름은 아래 nsis / portable 섹션에서 각각 지정한다.
+  # rcedit(wine) 대신 afterPack 훅의 resedit 가 아이콘·버전 정보를 넣는다.
+  signAndEditExecutable: false
+  # 코드 서명 인증서가 없으므로 서명은 하지 않는다 (설치 시 SmartScreen 경고가 뜰 수 있음).
+  verifyUpdateCodeSignature: false
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowElevation: true
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: MarkView
+  menuCategory: false
+  deleteAppDataOnUninstall: false
+  runAfterFinish: true
+  installerLanguages:
+    - ko-KR
+    - en-US
+  language: '1042'
+  artifactName: ${productName}-${version}-Setup.${ext}
+  uninstallDisplayName: ${productName} ${version}
+
+portable:
+  artifactName: ${productName}-${version}-Portable.${ext}

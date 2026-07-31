@@ -1,0 +1,4 @@
+/* 내보내기(HTML/PDF)용 스타일 — 앱 UI 없이 본문만 */
+@import './tokens.css';
+@import 'katex/dist/katex.min.css';
+@import './preview.css';

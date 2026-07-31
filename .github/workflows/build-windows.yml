@@ -1,0 +1,70 @@
+name: Windows 설치 파일 빌드
+
+# Windows 러너에서 빌드하면 wine 없이 그대로 설치 파일이 만들어진다.
+# 결과물은 Actions 실행 페이지의 Artifacts 에서 내려받을 수 있고,
+# 태그를 밀면 릴리스에도 첨부된다.
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: 테스트 (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:unit
+
+      - name: E2E 시뮬레이션 (실제 Electron 창)
+        run: xvfb-run -a npm run test:e2e
+
+      - name: 실패 시 스크린샷 업로드
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results
+          path: test-results/
+          retention-days: 7
+
+  build-windows:
+    name: 설치 파일 빌드 (Windows)
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run dist:win
+      - run: npm run verify:installer
+
+      - name: 설치 파일 업로드
+        uses: actions/upload-artifact@v4
+        with:
+          name: MarkView-Windows
+          path: |
+            release/*Setup.exe
+            release/*Portable.exe
+          retention-days: 30
+
+      - name: 릴리스에 첨부 (태그 푸시 시)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/*Setup.exe
+            release/*Portable.exe

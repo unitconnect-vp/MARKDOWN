@@ -1,0 +1,114 @@
+/* 디자인 토큰 — 라이트/다크 공통 */
+:root {
+  --font-ui: 'Pretendard', 'Malgun Gothic', '맑은 고딕', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    'Noto Sans KR', system-ui, sans-serif;
+  --font-body: 'Pretendard', 'Malgun Gothic', '맑은 고딕', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    'Noto Sans KR', system-ui, sans-serif;
+  --font-mono: 'Cascadia Mono', 'D2Coding', 'Consolas', 'JetBrains Mono', 'SFMono-Regular', 'Menlo', monospace;
+
+  --radius-sm: 4px;
+  --radius: 7px;
+  --radius-lg: 12px;
+
+  --dur: 120ms;
+}
+
+:root,
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --bg: #ffffff;
+  --bg-sunken: #f4f5f7;
+  --bg-raised: #ffffff;
+  --bg-chrome: #f7f8fa;
+  --bg-hover: #eceef1;
+  --bg-active: #e2e5ea;
+  --bg-selected: #e5efff;
+
+  --fg: #1c2024;
+  --fg-muted: #5c6570;
+  --fg-subtle: #8b939d;
+  --fg-inverse: #ffffff;
+
+  --border: #e0e3e7;
+  --border-strong: #c6ccd3;
+
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-soft: #eaf1fe;
+
+  --danger: #d92d20;
+  --success: #12805c;
+  --warning: #b25e09;
+
+  --code-bg: #f6f7f9;
+  --code-border: #e4e7eb;
+  --quote-bar: #cfd6de;
+  --table-header: #f3f5f7;
+  --table-stripe: #fafbfc;
+
+  --shadow-sm: 0 1px 2px rgb(16 24 40 / 0.06), 0 1px 3px rgb(16 24 40 / 0.08);
+  --shadow-md: 0 4px 8px -2px rgb(16 24 40 / 0.1), 0 2px 4px -2px rgb(16 24 40 / 0.06);
+  --shadow-lg: 0 12px 16px -4px rgb(16 24 40 / 0.08), 0 4px 6px -2px rgb(16 24 40 / 0.03);
+
+  /* 코드 하이라이팅 */
+  --hl-comment: #7a828e;
+  --hl-keyword: #a626a4;
+  --hl-string: #0a7a3f;
+  --hl-number: #b45309;
+  --hl-title: #1c62d3;
+  --hl-attr: #986801;
+  --hl-type: #0f766e;
+  --hl-builtin: #c2410c;
+  --hl-deletion: #b42318;
+  --hl-addition: #027a48;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: #16181d;
+  --bg-sunken: #101216;
+  --bg-raised: #1c1f26;
+  --bg-chrome: #1a1d23;
+  --bg-hover: #262a32;
+  --bg-active: #2f343d;
+  --bg-selected: #1e3252;
+
+  --fg: #e4e7ec;
+  --fg-muted: #9aa4b2;
+  --fg-subtle: #6b7480;
+  --fg-inverse: #16181d;
+
+  --border: #2a2e37;
+  --border-strong: #3b414c;
+
+  --accent: #5c9dff;
+  --accent-hover: #7db0ff;
+  --accent-soft: #1b2b45;
+
+  --danger: #f97066;
+  --success: #47cd89;
+  --warning: #fdb022;
+
+  --code-bg: #1b1e25;
+  --code-border: #2a2e37;
+  --quote-bar: #3b414c;
+  --table-header: #1f232a;
+  --table-stripe: #1a1d23;
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-md: 0 4px 10px rgb(0 0 0 / 0.45);
+  --shadow-lg: 0 14px 28px rgb(0 0 0 / 0.5);
+
+  --hl-comment: #78828f;
+  --hl-keyword: #d09bf5;
+  --hl-string: #7ee2a8;
+  --hl-number: #f5b26b;
+  --hl-title: #78b4ff;
+  --hl-attr: #f0c674;
+  --hl-type: #5eddc7;
+  --hl-builtin: #ff9e64;
+  --hl-deletion: #ff8d85;
+  --hl-addition: #6ee7a8;
+}
