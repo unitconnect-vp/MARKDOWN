@@ -6,8 +6,28 @@ import { recentFiles } from './store.mjs';
  */
 export function buildMenu(sendCommand, openRecent) {
   const recent = recentFiles.list();
+  const isMac = process.platform === 'darwin';
 
   const template = [
+    // macOS 는 첫 메뉴가 항상 앱 이름 메뉴가 된다. 없으면 '파일' 메뉴가 그 자리를 빼앗긴다.
+    ...(isMac
+      ? [
+          {
+            label: app.name,
+            submenu: [
+              { label: `${app.name} 정보`, click: () => sendCommand('help:about') },
+              { type: 'separator' },
+              { role: 'services', label: '서비스' },
+              { type: 'separator' },
+              { role: 'hide', label: `${app.name} 가리기` },
+              { role: 'hideOthers', label: '기타 가리기' },
+              { role: 'unhide', label: '모두 보기' },
+              { type: 'separator' },
+              { role: 'quit', label: `${app.name} 종료` },
+            ],
+          },
+        ]
+      : []),
     {
       label: '파일(&F)',
       submenu: [
@@ -34,7 +54,8 @@ export function buildMenu(sendCommand, openRecent) {
         { label: 'PDF로 내보내기…', accelerator: 'CmdOrCtrl+P', click: () => sendCommand('export:pdf') },
         { type: 'separator' },
         { label: '탭 닫기', accelerator: 'CmdOrCtrl+W', click: () => sendCommand('tab:close') },
-        { label: '끝내기', accelerator: 'Alt+F4', click: () => sendCommand('app:quit') },
+        // macOS 는 앱 메뉴의 '종료'(⌘Q)를 쓴다.
+        ...(isMac ? [] : [{ label: '끝내기', accelerator: 'Alt+F4', click: () => sendCommand('app:quit') }]),
       ],
     },
     {
@@ -77,7 +98,9 @@ export function buildMenu(sendCommand, openRecent) {
         { role: 'reload', label: '새로 고침' },
       ],
     },
+    ...(isMac ? [{ role: 'windowMenu', label: '윈도우' }] : []),
     {
+      role: 'help',
       label: '도움말(&H)',
       submenu: [
         { label: '기능 안내 문서 열기', click: () => sendCommand('help:sample') },
@@ -93,7 +116,16 @@ export function buildMenu(sendCommand, openRecent) {
     },
   ];
 
-  const menu = Menu.buildFromTemplate(template);
+  // 접근 키 표기(&F 등)는 Windows/Linux 전용 — macOS 에서는 글자 그대로 보이므로 뗀다.
+  const menu = Menu.buildFromTemplate(isMac ? stripMnemonics(template) : template);
   Menu.setApplicationMenu(menu);
   return menu;
+}
+
+function stripMnemonics(items) {
+  return items.map((item) => ({
+    ...item,
+    ...(typeof item.label === 'string' ? { label: item.label.replace(/\(&\w\)$/, '') } : {}),
+    ...(Array.isArray(item.submenu) ? { submenu: stripMnemonics(item.submenu) } : {}),
+  }));
 }

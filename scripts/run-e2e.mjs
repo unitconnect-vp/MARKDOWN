@@ -26,7 +26,19 @@ const OUT_DIR = path.join(ROOT, 'test-results');
  */
 const packagedIndex = process.argv.indexOf('--packaged');
 const PACKAGED_DIR = packagedIndex >= 0 ? path.resolve(process.argv[packagedIndex + 1]) : null;
-const SAMPLES = PACKAGED_DIR ? path.join(PACKAGED_DIR, 'resources', 'samples') : path.join(ROOT, 'samples');
+
+/** 플랫폼별 패키징 결과물의 실행 파일 위치 */
+function packagedExecutable(dir) {
+  if (process.platform === 'win32') return path.join(dir, 'MarkView.exe');
+  if (process.platform === 'darwin') return path.join(dir, 'MarkView.app', 'Contents', 'MacOS', 'MarkView');
+  return path.join(dir, 'markview');
+}
+// extraResources 위치: Windows/Linux 는 <앱>/resources, macOS 는 <앱>.app/Contents/Resources
+const SAMPLES = PACKAGED_DIR
+  ? process.platform === 'darwin'
+    ? path.join(PACKAGED_DIR, 'MarkView.app', 'Contents', 'Resources', 'samples')
+    : path.join(PACKAGED_DIR, 'resources', 'samples')
+  : path.join(ROOT, 'samples');
 
 // ---- 헤드리스 환경이면 xvfb 아래에서 자기 자신을 다시 실행 -----------------
 if (!process.env.DISPLAY && process.platform === 'linux' && !process.env.MARKVIEW_E2E_NESTED) {
@@ -96,7 +108,7 @@ async function main() {
   ];
   const launchOptions = PACKAGED_DIR
     ? {
-        executablePath: path.join(PACKAGED_DIR, process.platform === 'win32' ? 'MarkView.exe' : 'markview'),
+        executablePath: packagedExecutable(PACKAGED_DIR),
         args: CHROMIUM_FLAGS,
       }
     : {

@@ -5,6 +5,7 @@ import './styles/index.css';
 
 import { createEditor } from './editor.mjs';
 import { createPreview } from './preview.mjs';
+import { keyLabel, localizeKeyTitles } from './keys.mjs';
 import {
   resolvePath,
   relativePath,
@@ -59,14 +60,14 @@ const state = {
   closing: false,
 };
 
-const WELCOME = `# 환영합니다 👋
+const WELCOME = keyLabel(`# 환영합니다 👋
 
 **MarkView** 는 Claude 가 만들어 준 마크다운 문서를 그대로, 제대로 보기 위한 편집기입니다.
 
 - \`Ctrl+O\` 로 \`.md\` 파일을 열거나, 창에 파일을 끌어다 놓으세요.
 - 왼쪽에서 편집하면 오른쪽 미리보기가 즉시 갱신됩니다.
 - 도움말 › **기능 안내 문서 열기** 로 모든 기능을 한 번에 확인할 수 있습니다.
-`;
+`);
 
 const newDocId = () => `doc-${state.nextId++}`;
 
@@ -182,7 +183,7 @@ function renderTabs() {
     const close = document.createElement('button');
     close.className = 'tab-close';
     close.type = 'button';
-    close.title = '닫기 (Ctrl+W)';
+    close.title = keyLabel('닫기 (Ctrl+W)');
     close.addEventListener('click', (e) => {
       e.stopPropagation();
       closeDoc(doc.id);
@@ -200,7 +201,7 @@ function renderTabs() {
   add.className = 'tab-new';
   add.type = 'button';
   add.textContent = '+';
-  add.title = '새 문서 (Ctrl+N)';
+  add.title = keyLabel('새 문서 (Ctrl+N)');
   add.addEventListener('click', () => createDoc());
   el.tabbar.appendChild(add);
 }
@@ -747,7 +748,7 @@ function shortcutTable() {
     ['다음 / 이전 탭', 'Ctrl+Tab · Ctrl+Shift+Tab'],
   ];
   return `<table class="shortcut-table"><tbody>${rows
-    .map(([label, keys]) => `<tr><td>${label}</td><td><kbd>${keys.replace(/ · /g, '</kbd> · <kbd>')}</kbd></td></tr>`)
+    .map(([label, keys]) => `<tr><td>${label}</td><td><kbd>${keyLabel(keys).replace(/ · /g, '</kbd> · <kbd>')}</kbd></td></tr>`)
     .join('')}</tbody></table>`;
 }
 
@@ -1006,6 +1007,7 @@ async function handleExternalChange(filePath) {
 async function boot() {
   const info = await api.ready();
   state.appInfo = info;
+  localizeKeyTitles(document);
   state.settings = info.settings || {};
   state.systemTheme = info.systemTheme || 'light';
   applyTheme();
@@ -1078,6 +1080,7 @@ async function boot() {
   createDoc({ text: WELCOME });
 
   for (const filePath of info.openPaths || []) await openPath(filePath);
+  for (const command of info.commands || []) runCommand(command);
 
   // 자동화 테스트/외부 호출용 훅
   window.__markview = {

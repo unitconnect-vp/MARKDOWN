@@ -28,7 +28,15 @@ const MD_FILTERS = [
 let mainWindow = null;
 /** 렌더러가 준비되기 전에 들어온 열기 요청 큐. */
 const pendingOpens = [];
+/** 창이 없을 때(macOS: 창을 다 닫고 Dock 에 남은 상태) 받은 메뉴 명령 */
+const pendingCommands = [];
 let rendererReady = false;
+/**
+ * 종료 중인지. 창 닫기를 보류(저장 확인)하면 Electron 은 진행 중이던 app.quit() 을 취소한다.
+ * Windows/Linux 는 마지막 창이 닫히면 어차피 종료되지만, macOS 는 창이 없어도 앱이 남으므로
+ * ⌘Q 가 창만 닫고 끝나 버린다. 이 표시로 확인이 끝난 뒤 종료를 이어 간다.
+ */
+let quitting = false;
 /** path -> fs.FSWatcher */
 const watchers = new Map();
 
@@ -56,8 +64,14 @@ function sendToRenderer(channel, payload) {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, payload);
 }
 
+/** macOS 에서는 창을 모두 닫아도 앱이 남는다. 파일·명령이 오면 창을 다시 띄운다. */
+function ensureWindow() {
+  if (!mainWindow && app.isReady()) createWindow();
+}
+
 function requestOpen(filePath) {
   if (!filePath) return;
+  ensureWindow();
   if (!rendererReady) {
     pendingOpens.push(filePath);
     return;
@@ -125,7 +139,12 @@ function unwatchDocument(filePath) {
 
 function refreshMenu() {
   buildMenu(
-    (cmd) => sendToRenderer('menu:command', cmd),
+    (cmd) => {
+      if (rendererReady) return sendToRenderer('menu:command', cmd);
+      if (!mainWindow && cmd === 'file:new') return ensureWindow(); // 새 창이 곧 새 문서
+      ensureWindow();
+      pendingCommands.push(cmd);
+    },
     (p) => requestOpen(p),
   );
 }
@@ -216,6 +235,7 @@ function createWindow() {
     };
     const onCancelled = () => {
       finish();
+      quitting = false; // 사용자가 종료를 취소했다
       closePending = false; // 사용자가 취소 — 다음 닫기 시도에 다시 물어본다
     };
     const timer = setTimeout(() => {
@@ -244,6 +264,7 @@ function registerIpc() {
   ipcMain.handle('app:ready', () => {
     rendererReady = true;
     const queued = pendingOpens.splice(0);
+    const commands = pendingCommands.splice(0);
     return {
       version: app.getVersion(),
       name: 'MarkView',
@@ -251,6 +272,7 @@ function registerIpc() {
       systemTheme: nativeTheme.shouldUseDarkColors ? 'dark' : 'light',
       sampleDir: SAMPLES_DIR,
       openPaths: queued,
+      commands,
       platform: process.platform,
       versions: { electron: process.versions.electron, chrome: process.versions.chrome, node: process.versions.node },
     };
@@ -468,9 +490,14 @@ if (!app.requestSingleInstanceLock()) {
     });
   });
 
+  app.on('before-quit', () => {
+    quitting = true;
+  });
+
   app.on('window-all-closed', () => {
     for (const [p] of watchers) unwatchDocument(p);
     settings.flushNow();
-    if (process.platform !== 'darwin') app.quit();
+    // macOS 는 창을 닫아도 Dock 에 남는다. 단, 종료(⌘Q) 도중이면 끝까지 종료한다.
+    if (process.platform !== 'darwin' || quitting) app.quit();
   });
 }

@@ -9,7 +9,11 @@
  */
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { NtExecutable, NtExecutableResource, Resource, Data } from 'resedit';
+
+const run = promisify(execFile);
 
 /** "1.2.3" → [1, 2, 3, 0] */
 function versionTuple(version) {
@@ -21,6 +25,7 @@ function versionTuple(version) {
 }
 
 export default async function afterPack(context) {
+  if (context.electronPlatformName === 'darwin') return adHocSignMac(context);
   if (context.electronPlatformName !== 'win32') return;
 
   const { packager, appOutDir } = context;
@@ -85,4 +90,23 @@ export default async function afterPack(context) {
   console.log(
     `  • afterPack: ${exeName} 아이콘(${iconFile.icons.length}종) + 버전 정보(${version}) 적용 [resedit, wine 불필요]`,
   );
+}
+
+/**
+ * macOS: ad-hoc 서명.
+ *
+ * electron-builder 가 Info.plist·아이콘·asar 를 바꾸면 Electron 원본의 서명이 깨진다.
+ * Apple Silicon 은 서명이 없거나 깨진 arm64 바이너리를 실행하지 않으므로("손상된 앱"),
+ * 인증서 없이도 가능한 ad-hoc 서명(-s -)으로 번들 전체를 다시 서명한다.
+ * (Gatekeeper 의 "확인되지 않은 개발자" 경고까지 없애려면 Developer ID 서명·공증이 필요)
+ */
+async function adHocSignMac({ packager, appOutDir }) {
+  if (process.platform !== 'darwin') {
+    console.warn('  • afterPack: macOS 가 아니므로 ad-hoc 서명을 건너뜁니다 (codesign 없음).');
+    return;
+  }
+  const appPath = path.join(appOutDir, `${packager.appInfo.productFilename}.app`);
+  await run('codesign', ['--force', '--deep', '--sign', '-', appPath]);
+  await run('codesign', ['--verify', '--deep', '--strict', appPath]);
+  console.log(`  • afterPack: ${path.basename(appPath)} ad-hoc 서명 완료`);
 }

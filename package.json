@@ -20,6 +20,7 @@
     "test": "npm run build && npm run test:unit && npm run test:e2e",
     "dist:win": "npm run build && electron-builder --win --x64 --publish never",
     "dist:win:portable": "npm run build && electron-builder --win portable --x64 --publish never",
+    "dist:mac": "npm run build && electron-builder --mac --arm64 --publish never",
     "pack:linux": "npm run build && electron-builder --linux dir --publish never",
     "verify:package": "npm run pack:linux && npm run test:e2e:packaged",
     "verify:installer": "node scripts/verify-installer.mjs"

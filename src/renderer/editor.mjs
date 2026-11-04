@@ -20,6 +20,7 @@ import { searchKeymap, highlightSelectionMatches, search, openSearchPanel } from
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { syntaxHighlighting, HighlightStyle, bracketMatching, indentUnit } from '@codemirror/language';
 import { tags as t } from '@lezer/highlight';
+import { keyLabel } from './keys.mjs';
 
 const markdownHighlight = HighlightStyle.define([
   { tag: t.heading1, fontSize: '1.5em', fontWeight: '700', color: 'var(--fg)' },
@@ -118,7 +119,7 @@ export function createEditor({ parent, onChange, onCursor, onScroll, settings })
         markdown({ base: markdownLanguage, addKeymap: true }),
         syntaxHighlighting(markdownHighlight, { fallback: true }),
         keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap, indentWithTab]),
-        cmPlaceholder('여기에 마크다운을 입력하세요…  (Ctrl+O 로 파일 열기)'),
+        cmPlaceholder(keyLabel('여기에 마크다운을 입력하세요…  (Ctrl+O 로 파일 열기)')),
         gutterCompartment.of(settings.lineNumbers === false ? [] : lineNumbers()),
         wrapCompartment.of(settings.wordWrap === false ? [] : EditorView.lineWrapping),
         fontCompartment.of(fontTheme(settings.editorFontSize || 14)),
