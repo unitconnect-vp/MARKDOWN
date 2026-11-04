@@ -26,7 +26,7 @@ MarkView 는 이 네 가지를 기본으로 처리합니다.
 
 ### 설치 파일 (권장)
 
-빌드된 설치 파일은 GitHub Actions 의 **Windows 설치 파일 빌드 › Artifacts › `MarkView-Windows`**
+빌드된 설치 파일은 GitHub Actions 의 **설치 파일 빌드 › Artifacts › `MarkView-Windows`**
 에서 내려받거나, 직접 빌드하면 `release/` 에 생깁니다.
 
 `MarkView-1.0.0-Setup.exe` 를 실행합니다. (약 80 MB, Windows 10/11 64비트)
@@ -39,6 +39,28 @@ MarkView 는 이 네 가지를 기본으로 처리합니다.
 
 > 코드 서명 인증서를 붙이지 않았으므로 처음 실행할 때 Windows SmartScreen 경고가
 > 나올 수 있습니다. **추가 정보 › 실행** 을 누르면 됩니다.
+
+### macOS (Apple Silicon — M1 ~ M6)
+
+GitHub Actions 의 **설치 파일 빌드 › Artifacts › `MarkView-macOS`** 에서
+`MarkView-1.0.0-mac-arm64.dmg` 를 내려받습니다. (태그를 밀면 릴리스에도 첨부됩니다)
+
+1. `.dmg` 를 열고 **MarkView** 아이콘을 **Applications** 폴더로 끌어다 놓습니다.
+2. 처음 한 번은 Apple 개발자 인증서로 서명·공증하지 않은 앱이라 실행이 막힙니다.
+   - **시스템 설정 › 개인정보 보호 및 보안** 맨 아래의 *"MarkView 이(가) 차단되었습니다"* 옆
+     **그래도 열기** 를 누르거나,
+   - 터미널에서 다운로드 격리 표시를 지웁니다.
+
+     ```bash
+     xattr -dr com.apple.quarantine /Applications/MarkView.app
+     ```
+3. 이후에는 평소처럼 실행됩니다. Finder 에서 `.md` 파일을 우클릭 › **다음으로 열기 › MarkView**
+   (항상 이 앱으로 열려면 **정보 가져오기 › 다음으로 열기 › 모두 변경**).
+
+- Intel Mac 은 지원하지 않습니다 (arm64 전용 빌드).
+- 단축키는 `Ctrl` 대신 `⌘` 를 씁니다. 탭 전환만 `⌃Tab` 입니다.
+- 앱은 ad-hoc 서명만 되어 있습니다. 경고 없이 배포하려면 Developer ID 인증서로 서명하고
+  공증(notarization)을 받아야 합니다.
 
 ### 포터블
 
@@ -103,7 +125,7 @@ npm start         # 앱 실행
 ### 검증
 
 ```bash
-npm run test:unit          # 렌더링 파이프라인 단위 테스트 (50개)
+npm run test:unit          # 렌더링 파이프라인 단위 테스트
 npm run test:e2e           # 실제 Electron 창을 띄우는 시뮬레이션 (34개)
 npm run verify:package     # 패키징된 앱으로 같은 시뮬레이션 재실행
 npm run verify:installer   # 설치 파일 구조·아이콘·버전 정보·asar 내용 검증
@@ -112,6 +134,20 @@ npm run verify:installer   # 설치 파일 구조·아이콘·버전 정보·asa
 `test:e2e` 는 실제 창을 띄워 이미지가 픽셀 단위로 로드됐는지, Mermaid SVG 가 실제 크기로
 그려졌는지, 내보낸 HTML 에 외부 참조가 남지 않았는지까지 확인하고
 `test-results/` 에 스크린샷과 산출물을 남깁니다. (헤드리스 환경에서는 자동으로 `xvfb-run` 사용)
+
+### macOS 설치 파일 만들기 (Apple Silicon)
+
+macOS 에서만 빌드할 수 있습니다.
+
+```bash
+npm run dist:mac
+# → release/MarkView-<version>-mac-arm64.dmg
+#   release/MarkView-<version>-mac-arm64.zip
+```
+
+인증서가 없으므로 electron-builder 의 서명은 끄고(`mac.identity: null`),
+`scripts/after-pack.mjs` 가 `codesign --sign -` 로 ad-hoc 서명합니다.
+Apple Silicon 은 서명이 깨진 앱을 실행하지 않기 때문에 이 단계가 필요합니다.
 
 ### Windows 설치 파일 만들기
 

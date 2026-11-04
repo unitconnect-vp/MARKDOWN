@@ -28,6 +28,8 @@ const MD_FILTERS = [
 let mainWindow = null;
 /** 렌더러가 준비되기 전에 들어온 열기 요청 큐. */
 const pendingOpens = [];
+/** 창이 없을 때(macOS: 창을 다 닫고 Dock 에 남은 상태) 받은 메뉴 명령 */
+const pendingCommands = [];
 let rendererReady = false;
 /** path -> fs.FSWatcher */
 const watchers = new Map();
@@ -56,8 +58,14 @@ function sendToRenderer(channel, payload) {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, payload);
 }
 
+/** macOS 에서는 창을 모두 닫아도 앱이 남는다. 파일·명령이 오면 창을 다시 띄운다. */
+function ensureWindow() {
+  if (!mainWindow && app.isReady()) createWindow();
+}
+
 function requestOpen(filePath) {
   if (!filePath) return;
+  ensureWindow();
   if (!rendererReady) {
     pendingOpens.push(filePath);
     return;
@@ -125,7 +133,12 @@ function unwatchDocument(filePath) {
 
 function refreshMenu() {
   buildMenu(
-    (cmd) => sendToRenderer('menu:command', cmd),
+    (cmd) => {
+      if (rendererReady) return sendToRenderer('menu:command', cmd);
+      if (!mainWindow && cmd === 'file:new') return ensureWindow(); // 새 창이 곧 새 문서
+      ensureWindow();
+      pendingCommands.push(cmd);
+    },
     (p) => requestOpen(p),
   );
 }
@@ -244,6 +257,7 @@ function registerIpc() {
   ipcMain.handle('app:ready', () => {
     rendererReady = true;
     const queued = pendingOpens.splice(0);
+    const commands = pendingCommands.splice(0);
     return {
       version: app.getVersion(),
       name: 'MarkView',
@@ -251,6 +265,7 @@ function registerIpc() {
       systemTheme: nativeTheme.shouldUseDarkColors ? 'dark' : 'light',
       sampleDir: SAMPLES_DIR,
       openPaths: queued,
+      commands,
       platform: process.platform,
       versions: { electron: process.versions.electron, chrome: process.versions.chrome, node: process.versions.node },
     };
