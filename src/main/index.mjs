@@ -31,6 +31,12 @@ const pendingOpens = [];
 /** 창이 없을 때(macOS: 창을 다 닫고 Dock 에 남은 상태) 받은 메뉴 명령 */
 const pendingCommands = [];
 let rendererReady = false;
+/**
+ * 종료 중인지. 창 닫기를 보류(저장 확인)하면 Electron 은 진행 중이던 app.quit() 을 취소한다.
+ * Windows/Linux 는 마지막 창이 닫히면 어차피 종료되지만, macOS 는 창이 없어도 앱이 남으므로
+ * ⌘Q 가 창만 닫고 끝나 버린다. 이 표시로 확인이 끝난 뒤 종료를 이어 간다.
+ */
+let quitting = false;
 /** path -> fs.FSWatcher */
 const watchers = new Map();
 
@@ -229,6 +235,7 @@ function createWindow() {
     };
     const onCancelled = () => {
       finish();
+      quitting = false; // 사용자가 종료를 취소했다
       closePending = false; // 사용자가 취소 — 다음 닫기 시도에 다시 물어본다
     };
     const timer = setTimeout(() => {
@@ -483,9 +490,14 @@ if (!app.requestSingleInstanceLock()) {
     });
   });
 
+  app.on('before-quit', () => {
+    quitting = true;
+  });
+
   app.on('window-all-closed', () => {
     for (const [p] of watchers) unwatchDocument(p);
     settings.flushNow();
-    if (process.platform !== 'darwin') app.quit();
+    // macOS 는 창을 닫아도 Dock 에 남는다. 단, 종료(⌘Q) 도중이면 끝까지 종료한다.
+    if (process.platform !== 'darwin' || quitting) app.quit();
   });
 }
